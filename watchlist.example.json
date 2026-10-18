@@ -1,0 +1,14 @@
+{
+  "_readme": [
+    "Copy this file to watchlist.json and fill it in. It is the living config the watcher reads on every run; after an edit, python deal_watcher.py --rescore applies it to deals already stored.",
+    "entries: one object per thing you want. Fields: id (short unique name, shown as the match tag) | tier ('hot' = worth a notification, 'watch' = dashboard only) | patterns (case-insensitive regex list, ANY match = hit) | require_patterns (optional; ALL must also match) | exclude_patterns (optional; ANY match = reject) | price_max_usd (optional; a hot match above it demotes to watch) | min_discount_pct (optional; a hot match demotes to watch unless the deal shows at least this % off, from the feed or from the watcher's own price history) | needs_detail (optional; true keeps the entry at watch until you fill in specifics) | note (optional; why it is here).",
+    "never_show: regex list; a deal matching any of these is hidden permanently, no overrides.",
+    "hidden_for_now: regex list; same hiding, but a match on one of your entries overrides it and the deal shows with its match tag. Useful for generic roundup sales: a roundup naming nothing you want stays hidden, one naming a watched item surfaces.",
+    "matched_only_categories: optional list of category names (computers, electronics, camping-outdoors, home, clothing, other) whose deals only show when an entry matched them.",
+    "unmatched_computer_parts: optional list of part types (nvme, ssd, hdd, ram, gpu, cpu, psu, motherboard); when set, unmatched computer deals show only for these. Omit it to show every computer deal.",
+    "When something is bought or no longer wanted, delete its entry."
+  ],
+  "entries": [],
+  "never_show": [],
+  "hidden_for_now": []
+}

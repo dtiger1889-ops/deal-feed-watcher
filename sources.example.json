@@ -1,0 +1,21 @@
+{
+  "_readme": [
+    "Copy this file to sources.json. Each entry is one feed the watcher polls.",
+    "name: label shown on the dashboard (also the key for fresh_days).",
+    "type: rss (RSS 2.0 or Atom) | shopify (a store's /products.json?limit=250) | woot (Woot developer API; put the key in woot_api_key.txt) | bradsdeals_html (the bradsdeals.com/deals tile page).",
+    "url: the feed address. For a feed whose address is itself a secret (a per-account alert feed), use url_file instead: the name of a file in this folder holding the address. Keep that file out of git.",
+    "enabled: optional, false skips the source.",
+    "fresh_days: optional, how many days a row from this source stays on the main page after the feed last listed it (default 7). A one-deal-a-day site wants 2.",
+    "A search on a deal site that offers RSS for any query becomes its own rss entry, one per thing you want searched."
+  ],
+  "sources": [
+    {"name": "Slickdeals frontpage", "type": "rss",
+     "url": "https://slickdeals.net/newsearch.php?mode=frontpage&searcharea=deals&searchin=first&rss=1"},
+    {"name": "DealNews", "type": "rss", "url": "https://www.dealnews.com/?rss=1&sort=time"},
+    {"name": "DealCatcher", "type": "rss", "url": "https://www.dealcatcher.com/rss"},
+    {"name": "Meh", "type": "rss", "url": "https://meh.com/deals.rss", "fresh_days": 2},
+    {"name": "BradsDeals", "type": "bradsdeals_html", "url": "https://www.bradsdeals.com/deals"},
+    {"name": "Woot", "type": "woot", "url": "https://developer.woot.com/feed/All", "enabled": false},
+    {"name": "CamelCamelCamel", "type": "rss", "url_file": "ccc_feed_url.txt", "enabled": false}
+  ]
+}

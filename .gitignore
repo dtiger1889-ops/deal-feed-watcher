@@ -1,0 +1,14 @@
+# your config and secrets
+sources.json
+watchlist.json
+woot_api_key.txt
+ccc_feed_url.txt
+
+# runtime output
+deals.db
+watcher.log
+dashboard.html
+digest_feed.json
+price_history.json
+tuning_stats.json
+__pycache__/
