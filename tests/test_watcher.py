@@ -82,11 +82,17 @@ class Repricing(TempFiles):
         w.load_baseline(db)
         w.refresh_baseline_group(db, pk, "2026-01-01")
         item = {"guid": "g4", "title": title, "description": "now $60", "source": "s"}
+        lamp = {"entries": [{"id": "lamp", "tier": "hot", "patterns": ["\\blamp\\b"],
+                             "min_discount_pct": 15}],
+                "never_show": [], "hidden_for_now": []}
         w.WATCHLIST_FILE = self.tmp / "watchlist.json"
-        w.WATCHLIST_FILE.write_text(json.dumps(WATCHLIST), encoding="utf-8")
+        w.WATCHLIST_FILE.write_text(json.dumps(lamp), encoding="utf-8")
         w.refresh_existing(db, item, w.load_watchlist(), "2026-01-02T00:00:00")
-        median, = db.execute("SELECT baseline_median FROM deals WHERE guid='g4'").fetchone()
+        median, tier = db.execute(
+            "SELECT baseline_median, tier FROM deals WHERE guid='g4'").fetchone()
         self.assertEqual(median, 55.0)  # median of 50, 50, 60, 100 -- not the stale 75
+        # $60 is 20% under the stale 75 but above the updated 55: not hot.
+        self.assertEqual(tier, "watch")
         db.close()
 
 

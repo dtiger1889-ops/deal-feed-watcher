@@ -816,8 +816,9 @@ def run():
 def rebuild():
     """Rescore stored deals, re-extract pricing, and regenerate the dashboard
     without fetching sources. Also rebuilds price_archive from the deals table
-    (deals is the source of truth; archive rows are derived), so a --rebuild
-    followed by --consolidate regenerates price_history from corrected prices."""
+    (deals is the source of truth; archive rows are derived). A --consolidate
+    after it adds only months not yet in price_history; months already folded
+    keep their saved figures."""
     wl = load_watchlist()
     db = open_db()
     rows = db.execute(
