@@ -58,6 +58,52 @@ class Categories(unittest.TestCase):
         self.assertNotEqual(w.product_key("Sample Batteries 4-pack", "s"),
                             w.product_key("Sample Batteries 12-pack", "s"))
 
+    def test_plain_couch_is_home(self):
+        self.assertEqual(w.categorize("Example couch for $300"), "home")
+
+
+class TempFiles(unittest.TestCase):
+    """Points every file the watcher writes at a throwaway folder."""
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        for name, rel in [("DB_FILE", "deals.db"), ("LOG_FILE", "watcher.log"),
+                          ("PRICE_HISTORY_FILE", "price_history.json")]:
+            setattr(w, name, self.tmp / rel)
+
+
+class Repricing(TempFiles):
+    def test_repriced_offer_scored_against_updated_group(self):
+        db = w.open_db()
+        title = "Sample Desk Lamp Brass Finish"
+        pk = w.product_key(title, "s")
+        for guid, price in [("g1", 50.0), ("g2", 50.0), ("g3", 100.0), ("g4", 100.0)]:
+            db.execute("INSERT INTO deals (guid, title, price, product_key) VALUES (?,?,?,?)",
+                       (guid, title, price, pk))
+        w.load_baseline(db)
+        w.refresh_baseline_group(db, pk, "2026-01-01")
+        item = {"guid": "g4", "title": title, "description": "now $60", "source": "s"}
+        w.WATCHLIST_FILE = self.tmp / "watchlist.json"
+        w.WATCHLIST_FILE.write_text(json.dumps(WATCHLIST), encoding="utf-8")
+        w.refresh_existing(db, item, w.load_watchlist(), "2026-01-02T00:00:00")
+        median, = db.execute("SELECT baseline_median FROM deals WHERE guid='g4'").fetchone()
+        self.assertEqual(median, 55.0)  # median of 50, 50, 60, 100 -- not the stale 75
+        db.close()
+
+
+class Consolidate(TempFiles):
+    def test_folded_month_is_not_overwritten(self):
+        saved = {"2020-01": {"ssd": {"2TB": {"deals": 9, "min_price": 70.0,
+                                             "median_price": 90.0, "avg_discount_pct": 20}}}}
+        w.PRICE_HISTORY_FILE.write_text(json.dumps(saved), encoding="utf-8")
+        db = w.open_db()
+        db.execute("INSERT INTO price_archive (seen_date, part_type, spec, title, price) "
+                   "VALUES ('2020-01-15', 'ssd', '2TB', 'Sample SSD', 300.0)")
+        db.commit()
+        db.close()
+        w.consolidate()
+        history = json.loads(w.PRICE_HISTORY_FILE.read_text(encoding="utf-8"))
+        self.assertEqual(history, saved)
+
 
 class FullRun(unittest.TestCase):
     def setUp(self):

@@ -102,7 +102,7 @@ CATEGORY_RULES = [
                     r"console|Nintendo|PlayStation|Xbox|\b(mouse|keyboard)\b"),
     ("camping-outdoors", r"\btent\b|sleeping bag|camping|\bcooler\b|hiking|air mattress"),
     ("home", r"vacuum|furniture|mattress|kitchen|appliance|air fryer|\bsofa\b|\brug\b|ironing board|"
-             r"sectional|couch|loveseat|recliner|"
+             r"sectional|\bcouch\b|loveseat|recliner|"
              r"air (filter|purifier)|MERV|LED strip|light bulb"),
     ("clothing", r"jacket|\bcoat\b|shirt|\btee\b|t-shirt|undershirt|pants|jeans|shoes|sneaker|"
                  r"boots|apparel|clothing|sweater|hoodie|\bsocks\b|underwear|shorts"),
@@ -457,11 +457,10 @@ def score_item(item, wl):
                 etier = "watch"
             floor = entry["min_discount_pct"]
             if floor:
-                # Feed signal preferred: pct present => exactly the old behavior.
+                # A discount the feed states wins. Only when the feed states
+                # none does the comparison with similar stored listings decide.
                 satisfied = pct is not None and pct >= floor
                 if not satisfied and pct is None:
-                    # No feed-stated discount -- synthesize signal 2 from the
-                    # corpus's own price distribution.
                     ctx = baseline_context(product_key(item["title"], item.get("source", "")), sale)
                     if ctx:
                         satisfied = ctx[2] >= floor
@@ -673,17 +672,28 @@ def refresh_existing(db, item, wl, now_iso):
     price_dropped_at are stamped so the digest can report it once.
     """
     row = db.execute(
-        "SELECT price, low_price FROM deals WHERE guid=?", (item["guid"],)).fetchone()
+        "SELECT price, low_price, product_key FROM deals WHERE guid=?",
+        (item["guid"],)).fetchone()
     if row is None:
         return None
-    old_price, low_price = row
-    matched, tier, suppressed, category = score_item(item, wl)
+    old_price, low_price, old_pk = row
     sale, orig, pct = extract_pricing(item["title"], item["description"])
     floor_price = low_price if low_price is not None else old_price
     dropped = bool(sale and floor_price
                    and sale <= floor_price * (1 - PRICE_DROP_MIN_PCT / 100))
     new_low = min(p for p in (low_price, sale) if p is not None) if (sale or low_price) else None
     pk = product_key(item["title"], item.get("source", ""))
+    if sale != old_price or pk != old_pk:
+        # This row's current price is one of its group's observations. Store it
+        # and recompute the group's median BEFORE scoring, so the tier and the
+        # stored comparison both use the new figure. A retitled offer can move
+        # to another group, so the group it left is recomputed too.
+        db.execute("UPDATE deals SET price=?, product_key=? WHERE guid=?",
+                   (sale, pk, item["guid"]))
+        refresh_baseline_group(db, pk, now_iso[:10])
+        if old_pk and old_pk != pk:
+            refresh_baseline_group(db, old_pk, now_iso[:10])
+    matched, tier, suppressed, category = score_item(item, wl)
     ctx = baseline_context(pk, sale) or (None, None, None)
     db.execute(
         "UPDATE deals SET last_seen=?, title=?, description=?, price=?, orig_price=?, "
@@ -692,10 +702,6 @@ def refresh_existing(db, item, wl, now_iso):
         (now_iso, item["title"], item["description"], sale, orig, pct,
          ",".join(matched), tier, category, suppressed, new_low,
          pk, ctx[0], ctx[1], ctx[2], item["guid"]))
-    if sale != old_price:
-        # This row's current price is one of its group's observations; keep
-        # the group's exact median in step with it.
-        refresh_baseline_group(db, pk, now_iso[:10])
     if dropped:
         db.execute(
             "UPDATE deals SET prev_price=?, price_dropped_at=? WHERE guid=?",
@@ -1378,6 +1384,11 @@ def consolidate():
     for month, part, spec, price, pct in rows:
         buckets.setdefault((month, part, spec or "unspecified"), []).append((price, pct))
     for (month, part, spec), vals in sorted(buckets.items()):
+        # A month already folded in keeps its saved figures: rows for it can
+        # only reappear through --rebuild, which re-derives them from the deals
+        # still stored and would otherwise replace fuller history with less.
+        if spec in history.get(month, {}).get(part, {}):
+            continue
         prices = [v[0] for v in vals]
         pcts = [v[1] for v in vals if v[1] is not None]
         history.setdefault(month, {}).setdefault(part, {})[spec] = {

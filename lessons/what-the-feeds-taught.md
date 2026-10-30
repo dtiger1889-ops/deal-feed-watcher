@@ -50,4 +50,4 @@ The phone layout set `display` on table rows, which outranks the browser's defau
 
 ## Some stores cannot be watched directly
 
-Store product pages behind Cloudflare refuse scripted requests from any environment, whatever the user agent. Feeds and official APIs are the only reliable inputs, which is why the watcher reads nothing else.
+Store product pages behind Cloudflare refused every scripted request tried while building this, whatever the user agent. Feeds and official APIs were the inputs that held up, which is why the watcher leans on them; the one HTML source it keeps is a deal site, read with the expectation that a redesign will break it.

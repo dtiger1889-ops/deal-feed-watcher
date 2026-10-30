@@ -4,12 +4,12 @@
 
 A deal watcher that runs on a schedule, reads the big deal sites' feeds, and puts the deals that match the things you actually want at the top of one self-contained HTML page, with everything else sorted into categories below them. No AI is involved anywhere: matching is plain regular expressions you write, and the price math is arithmetic over what the feeds say and what the watcher has seen before.
 
-Deal feeds carry far more offers than anyone reads, and the few you would buy get buried in the churn. Writing down what you want once and letting a script read the feeds for you catches them, and because the watcher keeps a price history, over time it can tell a real discount from a "sale" at the usual price.
+Deal feeds carry far more offers than anyone reads, and the few you would buy get buried in the churn. Writing down what you want once and letting a script read the feeds for you catches them, and because the watcher remembers the listings it has seen, over time it can compare a "sale" price with what similar listings were priced at.
 
 ## What you get
 
 - **One page with your matches first**: hot matches (worth a notification) and watch matches (dashboard only), then per-category sections of other recent deals, with search, a max-price filter, a minimum-discount filter and a "matches only" switch that hides everything else. Categories listed in the watchlist's `matched_only_categories` show matches only. It works on a phone.
-- **A discount figure even when the feed gives none.** Many feeds never state a list price. The watcher groups similar listings and compares a new price against the median of what that group has sold for. That comparison decides whether a match is hot, and `digest_feed.json` carries it with a label saying which kind of number it is (stated by the feed, or computed from history); the page itself shows only feed-stated discounts.
+- **A discount figure even when the feed gives none.** Many feeds never state a list price. The watcher groups similar listings and compares a new price against the median current price of the stored listings in that group (each listing counts once, at its latest price). That comparison decides whether a match is hot, and `digest_feed.json` carries it with a label saying which kind of number it is (stated by the feed, or computed from history); the page itself shows only feed-stated discounts.
 - **Price drops on repeat offers**, measured against the lowest price that offer has ever shown, so a listing that bounces up and down by a dollar a day does not keep coming back as news.
 - **Sold-out detection for Woot** through its official API, so the page stops linking to dead deals.
 - **`digest_feed.json`**, a small file of recent matches that any notifier (a chat bot, an email script) can read.
@@ -45,7 +45,8 @@ python deal_watcher.py --tuning-stats  # write tuning_stats.json: which entries 
 
 ## Known limits
 
-- Retail product pages behind Cloudflare's bot wall cannot be price-checked from a script, so the watcher reads feeds only. A store with no feed is out of reach.
+- Retail product pages behind Cloudflare's bot wall refused the scripted requests tried while building this, so the watcher reads feeds, Woot's official API and one deal site's HTML (below), not store pages. A store with no feed is out of reach.
+- Similar listings are grouped by their distinctive title words, and bare numbers are left out so prices don't split every group. Two models that differ only by a model number (with no unit such as TB or pack attached) can therefore share a group, and a cheaper model can make a pricier one look discounted. A feed-stated discount always takes precedence over that comparison.
 - A deal that drops out of a feed is not proof it ended (feeds rotate), so older matches move to an "older listings" section instead of disappearing. Only Woot can be checked for real.
 - The BradsDeals source reads that site's HTML. If the site is redesigned, that source logs 0 items until the pattern is updated; it never crashes the run.
 
