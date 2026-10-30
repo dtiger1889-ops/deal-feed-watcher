@@ -817,8 +817,8 @@ def rebuild():
     """Rescore stored deals, re-extract pricing, and regenerate the dashboard
     without fetching sources. Also rebuilds price_archive from the deals table
     (deals is the source of truth; archive rows are derived). A --consolidate
-    after it adds only months not yet in price_history; months already folded
-    keep their saved figures."""
+    after it adds only month/part/spec buckets not yet in price_history;
+    buckets already folded keep their saved figures."""
     wl = load_watchlist()
     db = open_db()
     rows = db.execute(
@@ -1385,7 +1385,7 @@ def consolidate():
     for month, part, spec, price, pct in rows:
         buckets.setdefault((month, part, spec or "unspecified"), []).append((price, pct))
     for (month, part, spec), vals in sorted(buckets.items()):
-        # A month already folded in keeps its saved figures: rows for it can
+        # A bucket already folded in keeps its saved figures: rows for it can
         # only reappear through --rebuild, which re-derives them from the deals
         # still stored and would otherwise replace fuller history with less.
         if spec in history.get(month, {}).get(part, {}):
