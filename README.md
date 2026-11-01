@@ -6,6 +6,12 @@ A deal watcher that runs on a schedule, reads the big deal sites' feeds, and put
 
 Deal feeds carry far more offers than anyone reads, and the few you would buy get buried in the churn. Writing down what you want once and letting a script read the feeds for you catches them, and because the watcher remembers the listings it has seen, over time it can compare a "sale" price with what similar listings were priced at.
 
+## Start here
+
+Download or clone this repo, then follow Setup below from its root. Start with the enabled public feeds and a watchlist you chose; the first run should create `dashboard.html` and `digest_feed.json`. Open the HTML to inspect the results before adding a schedule. An empty match list can mean no watchlist pattern matched, so check `watcher.log` before assuming the run failed.
+
+No skill or AI account is needed. If an agent helps, ask it: "Read the example config files and explain the feeds and watchlist settings I need. Keep credentials private and do not enable a schedule or notification channel." An agent would need local file access and Python execution to run the watcher; matching itself remains deterministic.
+
 ## What you get
 
 - **One page with your matches first**: hot matches (worth a notification) and watch matches (dashboard only), then per-category sections of other recent deals, with search, a max-price filter, a minimum-discount filter and a "matches only" switch that hides everything else. Categories listed in the watchlist's `matched_only_categories` show matches only. It works on a phone.
@@ -61,6 +67,10 @@ The tests run offline, including one full run against a local sample feed.
 ## Lessons
 
 [lessons/what-the-feeds-taught.md](lessons/what-the-feeds-taught.md) covers what went wrong while building this and what replaced it.
+
+## Help
+
+For setup questions or errors, [open an issue](https://github.com/dtiger1889-ops/deal-feed-watcher/issues) with the relevant versions and a redacted error description.
 
 ## License
 
